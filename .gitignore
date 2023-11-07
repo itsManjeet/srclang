@@ -1,5 +1,4 @@
 build/
 cmake-build-*/
-.idea/workspace.xml
 /code.src
 /.vs
