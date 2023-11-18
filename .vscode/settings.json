@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.bst": "yaml",
+        "stdio.h": "c"
+    }
+}
