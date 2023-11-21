@@ -1,5 +1,6 @@
 #include <getopt.h>
 #include <glob.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>

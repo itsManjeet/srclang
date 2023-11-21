@@ -173,6 +173,53 @@ Node *unary();
 Node *postfix();
 Node *primary();
 
+static char *read_file(char *path) {
+    FILE *fp = fopen(path, "r");
+    if (!fp)
+        error("cannot open %s: %s", path, strerror(errno));
+
+    fseek(fp, 0, SEEK_END);
+    size_t filesize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    char *buf = malloc(filesize + 2);
+    int size = fread(buf, 1, filesize, fp);
+    if (size != filesize)
+        error("file too large %lld != %lld", filesize, size);
+
+    buf[filesize] = '\n';
+    buf[filesize + 1] = '\0';
+    return buf;
+}
+
+static Program *use() {
+    char path[1024];
+    char *id = expect_ident();
+    strcpy(path, id);
+    while (consume(".")) {
+        strcat(path, "/");
+        strcat(path, expect_ident());
+    }
+    expect(";");
+    strcat(path, ".src");
+
+    Token *tok_backup = token;
+    char *user_input_backup = user_input;
+    char *filename_backup = filename;
+
+    filename = path;
+    user_input = read_file(path);
+    token = tokenize();
+
+    Program *prog = program();
+    token = tok_backup;
+    free(user_input);
+    user_input = user_input_backup;
+    filename = filename_backup;
+
+    return program();
+}
+
 Program *program() {
     Function head;
     head.next = NULL;
@@ -194,6 +241,17 @@ Program *program() {
             global_var(pub);
         } else if (consume("type")) {
             type_define();
+        } else if (consume("use")) {
+            VarList *backup = globals;
+            Program *prog = use();
+
+            for (Function *fun = prog->fns; fun; fun = fun->next) {
+                if (fun->pub) {
+                    cur->next = fun;
+                    cur = cur->next;
+                }
+            }
+            globals = backup;
         } else {
             error("invalid global declaration");
         }
@@ -490,6 +548,10 @@ VarList *read_func_params() {
     Token *tok = token;
     if (consume("void") && consume(")"))
         return NULL;
+    if (consume("...")) {
+        expect(")");
+        return NULL;
+    }
     token = tok;
 
     VarList *head = read_func_param();
@@ -497,6 +559,10 @@ VarList *read_func_params() {
 
     while (!consume(")")) {
         expect(",");
+        if (consume("...")) {
+            expect(")");
+            break;
+        }
         cur->next = read_func_param();
         cur = cur->next;
     }

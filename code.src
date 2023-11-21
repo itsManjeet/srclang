@@ -1,13 +1,6 @@
-let x: i32 = 20;
+use std.io;
 
-type String struct {
-    buffer: i8*,
-    length: i32
-};
-
-
-fun main (argc: i32, argv: i8**) i32 {
-    let str: String = {"Hello World"};
-    printf ("str: %s\n", str.buffer);
-    return 0;
+pub fun main() none {
+    printf ("Hello World");
+    exit (EXIT_FAILURE);
 }
