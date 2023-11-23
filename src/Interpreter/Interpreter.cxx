@@ -4,9 +4,7 @@
 #include <iostream>
 #include <ranges>
 
-#include <ffi.h>
 #include <dlfcn.h>
-#include <libtcc.h>
 
 #include "../Language/Language.hxx"
 #include "../Compiler/SymbolTable/SymbolTable.hxx"
@@ -479,149 +477,6 @@ bool Interpreter::call_closure(Value callee, uint8_t count) {
     return true;
 }
 
-bool Interpreter::call_native(Value callee, uint8_t count) {
-    auto native = reinterpret_cast<NativeFunction *>(
-            SRCLANG_VALUE_AS_OBJECT(callee)->pointer);
-    if (native->param.size() != count) {
-        error("Expected '" + std::to_string(native->param.size()) + "' but '" +
-              std::to_string(count) + "' provided");
-        return false;
-    }
-
-    static std::map<CType, ffi_type *> ctypes = {
-            {CType::i8,  &ffi_type_sint8},
-            {CType::i16, &ffi_type_sint16},
-            {CType::i32, &ffi_type_sint32},
-            {CType::i64, &ffi_type_sint64},
-            {CType::u8,  &ffi_type_uint8},
-            {CType::u16, &ffi_type_uint16},
-            {CType::u32, &ffi_type_uint32},
-            {CType::u64, &ffi_type_uint64},
-            {CType::f32, &ffi_type_float},
-            {CType::f64, &ffi_type_double},
-            {CType::ptr, &ffi_type_pointer},
-            {CType::val, &ffi_type_ulong},
-    };
-
-    void *handler = nullptr;
-    if (language->state != nullptr) {
-        handler = tcc_get_symbol(language->state, native->id.c_str());
-    }
-    if (handler == nullptr) {
-        handler = dlsym(nullptr, native->id.c_str());
-    }
-
-    if (handler == nullptr) {
-        error(dlerror());
-        return false;
-    }
-
-    ffi_cif cif;
-    void *values[count];
-    ffi_type *types[count];
-    int j = 0;
-    std::vector<unsigned long> unsigned_value_holder(count);
-    std::vector<long> signed_value_holder(count);
-    std::vector<double> float_value_holder(count);
-    for (auto i = sp - count; i != sp; i++, j++) {
-        auto type = SRCLANG_VALUE_GET_TYPE(*i);
-        if (!is_same(native->param[j], type)) {
-            error("ERROR: invalid " + std::to_string(j) + "th parameter, expected '" +
-                  CTYPE_ID[int(native->param[j])] + "' but got '" +
-                  SRCLANG_VALUE_TYPE_ID[int(type)] +
-                  "'");
-            return false;
-        }
-        if (native->param[j] == CType::val) {
-            values[j] = &(*i);
-            types[j] = &ffi_type_ulong;
-        } else {
-            switch (type) {
-                case ValueType::Null:
-                    values[j] = nullptr;
-                    types[j] = &ffi_type_pointer;
-                    break;
-                case ValueType::Number: {
-                    if (native->param[j] >= CType::i8 && native->param[j] <= CType::i64) {
-                        auto value = SRCLANG_VALUE_AS_NUMBER(*i);
-                        signed_value_holder[j] = static_cast<long>(value);
-                        values[j] = &signed_value_holder[j];
-                    } else if (native->param[j] >= CType::u8 && native->param[j] <= CType::u64) {
-                        auto value = SRCLANG_VALUE_AS_NUMBER(*i);
-                        unsigned_value_holder[j] = static_cast<unsigned long>(value);
-                        values[j] = &unsigned_value_holder[j];
-                    } else if (native->param[j] == CType::f32 && native->param[j] == CType::f64) {
-                        auto value = SRCLANG_VALUE_AS_NUMBER(*i);
-                        float_value_holder[j] = value;
-                        values[j] = &float_value_holder[j];
-                    } else {
-                        error("invalid value type " + SRCLANG_VALUE_DEBUG(*i));
-                        return false;
-                    }
-                    types[j] = ctypes[native->param[j]];
-
-                }
-                    break;
-                case ValueType::Pointer: {
-                    values[j] = &SRCLANG_VALUE_AS_OBJECT(*i)->pointer;
-                    types[j] = &ffi_type_pointer;
-                }
-                    break;
-
-                case ValueType::Boolean:
-                    values[j] = &(*i);
-                    types[j] = &ffi_type_sint;
-                    break;
-                default:
-                    values[j] = &SRCLANG_VALUE_AS_OBJECT(*i)->pointer;
-                    types[j] = &ffi_type_pointer;
-                    break;
-            }
-        }
-    }
-    ffi_type *ret_type = ctypes[native->ret];
-
-    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, count, ret_type,
-                     types) != FFI_OK) {
-        error("ffi_prep_cif() failed");
-        return false;
-    }
-    ffi_arg result;
-    ffi_call(&cif, FFI_FN(handler), &result, values);
-    switch (native->ret) {
-        case CType::i8:
-        case CType::i16:
-        case CType::i32:
-        case CType::i64:
-            result = SRCLANG_VALUE_NUMBER(static_cast<double>((long) result));
-            break;
-        case CType::u8:
-        case CType::u16:
-        case CType::u32:
-        case CType::u64:
-            result = SRCLANG_VALUE_NUMBER(static_cast<double>((unsigned long) result));
-            break;
-        case CType::ptr:
-            if ((void *) result == nullptr) {
-                result = SRCLANG_VALUE_NULL;
-            } else {
-                result = SRCLANG_VALUE_POINTER((void *) result);
-            }
-            break;
-        case CType::val:
-            // std::cout << "NATIVE: " << result << std::endl;
-            break;
-        default:
-            error("ERROR: unsupported return type '" +
-                  SRCLANG_VALUE_TYPE_ID[int(native->ret)] + "'");
-            return false;
-    }
-
-    sp -= count + 1;
-    *sp++ = result;
-    return true;
-}
-
 bool Interpreter::call_builtin(Value callee, uint8_t count) {
     auto builtin =
             reinterpret_cast<Builtin>(SRCLANG_VALUE_AS_OBJECT(callee)->pointer);
@@ -792,8 +647,6 @@ bool Interpreter::call(uint8_t count) {
         switch (SRCLANG_VALUE_AS_OBJECT(callee)->type) {
             case ValueType::Closure:
                 return call_closure(callee, count);
-            case ValueType::Native:
-                return call_native(callee, count);
             case ValueType::Builtin:
                 return call_builtin(callee, count);
             case ValueType::Bounded:

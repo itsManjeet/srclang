@@ -43,10 +43,6 @@ void srclang::SRCLANG_VALUE_FREE(Value value) {
                 object->cleanup(object->pointer);
                 break;
 
-            case ValueType::Native:
-                delete reinterpret_cast<NativeFunction *>(object->pointer);
-                break;
-
             case ValueType::Builtin:
                 break;
 

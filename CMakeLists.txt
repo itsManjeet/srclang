@@ -11,25 +11,11 @@ if (WIN32)
     set(READLINE "")
 else ()
     find_library(READLINE readline REQUIRED)
-
     find_library(DL dl REQUIRED)
-    find_library(FFI ffi REQUIRED)
-
-    include(ExternalProject)
-    ExternalProject_Add(tinycc
-            GIT_REPOSITORY git://repo.or.cz/tinycc.git
-            GIT_TAG mob
-            SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/libtcc
-            CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR>
-            BUILD_COMMAND make
-            INSTALL_COMMAND make install)
-    ExternalProject_Get_Property(tinycc INSTALL_DIR)
-    include_directories(${INSTALL_DIR}/include)
-    link_directories(${INSTALL_DIR}/lib)
-    set(TCC libtcc.a)
 endif ()
 
 add_subdirectory(src)
+add_subdirectory(modules)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     enable_testing()

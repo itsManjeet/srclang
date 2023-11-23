@@ -58,7 +58,6 @@ namespace srclang {
         Token cur, peek;
         Iterator iter, start, end;
         std::string filename;
-        std::string _cc_code;
 
         std::stringstream error_stream;
 
@@ -154,9 +153,6 @@ namespace srclang {
         /// fun '(' args ')' block
         bool function(Symbol *symbol, bool skip_args = false);
 
-        /// native ::= 'native' <identifier> ( (<type> % ',') ) <type>
-        bool native(Symbol *symbol);
-
         /// list ::= '[' (<expression> % ',') ']'
         bool list();
 
@@ -251,8 +247,6 @@ namespace srclang {
             error_stream.clear();
             return s;
         }
-
-        const std::string &cc_code() const { return _cc_code; }
     };
 
 }  // srclang

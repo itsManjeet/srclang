@@ -1,4 +1,4 @@
-add_executable(${PROJECT_NAME}
+add_library(${PROJECT_NAME}_LIB
         Value/Value.hxx Value/Value.cxx
         Compiler/SymbolTable/SymbolTable.cxx Compiler/SymbolTable/SymbolTable.hxx
         ByteCode/DebugInfo.hxx
@@ -10,8 +10,12 @@ add_executable(${PROJECT_NAME}
         Language/Options.cxx Language/Options.hxx
         Compiler/Compiler.cxx Compiler/Compiler.hxx
         Interpreter/Interpreter.cxx Interpreter/Interpreter.hxx
-        Language/Language.cxx Language/Language.hxx
-        srclang.cxx)
+        Language/Language.cxx Language/Language.hxx)
 
-add_dependencies(${PROJECT_NAME} tinycc)
-target_link_libraries(${PROJECT_NAME} ${DL} ${FFI} ${TCC})
+set_target_properties(${PROJECT_NAME}_LIB PROPERTIES
+        PREFIX "lib"
+        OUTPUT_NAME "${PROJECT_NAME}"
+        SUFFIX ".so.${PROJECT_VERSION}")
+
+add_executable(${PROJECT_NAME} srclang.cxx)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_LIB ${DL})

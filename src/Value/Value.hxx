@@ -22,7 +22,6 @@ namespace srclang {
     X(Closure, "closure")       \
     X(Builtin, "builtin")       \
     X(Error, "error")           \
-    X(Native, "native")         \
     X(Bounded, "bounded")       \
     X(Type, "type")             \
     X(Pointer, "ptr")
@@ -33,9 +32,9 @@ namespace srclang {
 #undef X
     };
 
-    static const std::vector <std::string> SRCLANG_VALUE_TYPE_ID = {
+    static const std::vector<std::string> SRCLANG_VALUE_TYPE_ID = {
 #define X(id, name) name,
-            SRCLANG_VALUE_TYPE_LIST
+        SRCLANG_VALUE_TYPE_LIST
 #undef X
     };
 
@@ -109,9 +108,8 @@ namespace srclang {
     SRCLANG_VALUE_HEAP_OBJECT(    \
         ValueType::Builtin, (void *)srclang::builtin_##id)
 
-
 #define SRCLANG_VALUE_BUILTIN_NEW(v) \
-    SRCLANG_VALUE_HEAP_OBJECT(    \
+    SRCLANG_VALUE_HEAP_OBJECT(       \
         ValueType::Builtin, (void *)(v))
 
 #define SRCLANG_VALUE_FUNCTION(fun) \
@@ -145,6 +143,29 @@ namespace srclang {
 
 #define SRCLANG_VALUE_DEBUG(val) SRCLANG_VALUE_GET_STRING(val) + ":" + SRCLANG_VALUE_TYPE_ID[(int)SRCLANG_VALUE_GET_TYPE(val)]
 
+#define SRCLANG_MODULE_VALUE(id) __srclang__module__value__##id
+#define SRCLANG_MODULE_OBJECT(id) __srclang__module__object__##id
+
+#define SRCLANG_MODULE(id) \
+    extern "C" Value __srclang_module__()
+
+#define SRCLANG_MODULE_FUNCTION(id) __srclang_module_fun_##id
+
+#define SRCLANG_MODULE_FUNCTION_DEFINE(id) \
+    static Value SRCLANG_MODULE_FUNCTION(id)(std::vector<Value> & args, Interpreter * interpreter)
+
+#define SRCLANG_MODULE_OBJECT_CREATE(id) auto SRCLANG_MODULE_OBJECT(id) = new SrcLangMap()
+#define SRCLANG_MODULE_VALUE_CREATE(id) auto SRCLANG_MODULE_VALUE(id) = SRCLANG_VALUE_MAP(SRCLANG_MODULE_OBJECT(id))
+
+#define SRCLANG_MODULE_FUNCTION_ADD(modid, funid) SRCLANG_MODULE_OBJECT(modid)->insert({#funid, SRCLANG_VALUE_BUILTIN_NEW(SRCLANG_MODULE_FUNCTION(funid))})
+
+#define SRCLANG_MODULE_PROLOGUE(id)   \
+    SRCLANG_MODULE_OBJECT_CREATE(id); \
+    SRCLANG_MODULE_VALUE_CREATE(id);
+
+#define SRCLANG_MODULE_EPILOGUE(id) \
+    return SRCLANG_MODULE_VALUE(id);
+
 #define SRCLANG_CHECK_ARGS_EXACT(count)                                    \
     if (args.size() != count)                                              \
         throw std::runtime_error("Expected '" + std::to_string(count) +    \
@@ -169,8 +190,8 @@ namespace srclang {
                                  "' to be '" +                        \
                                  SRCLANG_VALUE_TYPE_ID[int(ty)] + "'");
 
-    typedef std::vector <Value> SrcLangList;
-    typedef std::map <std::string, Value> SrcLangMap;
+    typedef std::vector<Value> SrcLangList;
+    typedef std::map<std::string, Value> SrcLangMap;
 
     static inline double srclang_value_to_decimal(Value value) {
         double num;
@@ -184,72 +205,14 @@ namespace srclang {
         return value;
     }
 
-#define SRCLANG_CTYPE_LIST \
-    X(i8)                  \
-    X(i16)                 \
-    X(i32)                 \
-    X(i64)                 \
-    X(u8)                  \
-    X(u16)                 \
-    X(u32)                 \
-    X(u64)                 \
-    X(f32)                 \
-    X(f64)                 \
-    X(ptr)                 \
-    X(val)
-
-    enum class CType : uint8_t {
-#define X(id) id,
-        SRCLANG_CTYPE_LIST
-#undef X
-    };
-
-    static const char *CTYPE_ID[] = {
-#define X(id) #id,
-            SRCLANG_CTYPE_LIST
-#undef X
-    };
-
-    static inline CType get_ctype(const char *ty) {
-        for (int i = 0; i <= (int) CType::val; i++) {
-            if (strcmp(CTYPE_ID[i], ty) == 0) {
-                return CType(i);
-            }
-        }
-        throw std::runtime_error("unknown ctype");
-    }
-
-    struct NativeFunction {
-        std::string id;
-        std::vector <CType> param;
-        CType ret;
-    };
-
-    static inline bool is_same(CType ctype, ValueType valueType) {
-        if (ctype == CType::val) return true;
-        switch (valueType) {
-            case ValueType::Boolean:
-            case ValueType::Number:
-                return (ctype >= CType::i8 && ctype <= CType::u64) ||
-                       (ctype == CType::f32 || ctype == CType::f64);
-
-            case ValueType::String:
-            case ValueType::Pointer:
-            case ValueType::Null:
-                return ctype == CType::ptr;
-        }
-        return false;
-    }
-
-
     struct BoundedValue {
         Value parent;
         Value value;
     };
 
-    static const std::vector <Value> SRCLANG_VALUE_TYPES = {
+    static const std::vector<Value> SRCLANG_VALUE_TYPES = {
 #define X(id, name) SRCLANG_VALUE_TYPE(ValueType::id),
-            SRCLANG_VALUE_TYPE_LIST
+        SRCLANG_VALUE_TYPE_LIST
 #undef X
     };
 
