@@ -4,11 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "srclang.h"
 
 FILE *cout = NULL;
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 struct List {
     char **data;
@@ -43,6 +48,20 @@ static const char *gcc_path() {
     return path;
 }
 
+static void random_string(char *buffer, int start, int length) {
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";  // Characters to choose from
+    int i;
+
+    srand((unsigned int)time(NULL));  // Seed the random number generator
+
+    for (i = start; i < start + length - 1; ++i) {
+        int index = rand() % (int)(sizeof(charset) - 1);
+        buffer[i] = charset[index];
+    }
+
+    buffer[start + length - 1] = '\0';
+}
+
 char *read_file(char *path) {
     FILE *fp = fopen(path, "r");
     if (!fp)
@@ -68,13 +87,14 @@ int main(int argc, char **argv) {
     const char *assembler = "as";
     bool static_linked = true;
     bool verbose = false;
+    bool assemble = false;
 
     int opt;
     char command[10240];
     int status = 0;
     struct List object_files = {};
 
-    while ((opt = getopt(argc, argv, "o:A:L:dv")) != -1) {
+    while ((opt = getopt(argc, argv, "o:A:L:dvS")) != -1) {
         switch (opt) {
             case 'o':
                 aout = optarg;
@@ -91,6 +111,9 @@ int main(int argc, char **argv) {
             case 'v':
                 verbose = true;
                 break;
+            case 'S':
+                assemble = true;
+                break;
             case ':':
                 fprintf(stderr, "option needs a value\n");
                 return 1;
@@ -98,6 +121,11 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "unknown option: %c\n", optopt);
                 return 1;
         }
+    }
+
+    if (optind == argc) {
+        fprintf(stderr, "no input file provided\n");
+        return 1;
     }
 
     for (; optind < argc; optind++) {
@@ -121,9 +149,13 @@ int main(int argc, char **argv) {
             fn->stack_size = align_to(offset, 8);
         }
 
-        char objectfile[1024];
-        sprintf(objectfile, "/tmp/srclang-XXXXXX");
-        mkstemp(objectfile);
+        char objectfile[PATH_MAX];
+        if (assemble) {
+            sprintf(objectfile, "%s.s", filename);
+        } else {
+            sprintf(objectfile, "/tmp/srclang-XXXXXX");
+            random_string(objectfile, 13, 6);
+        }
 
         if ((cout = fopen(objectfile, "w")) == NULL) {
             fprintf(stderr, "failed to open %s: %s", objectfile, strerror(errno));
@@ -132,19 +164,20 @@ int main(int argc, char **argv) {
         codegen(prog);
         fclose(cout);
         free(user_input);
+        if (!assemble) {
+            sprintf(command, "%s -o %s.o %s", "as", objectfile, objectfile);
+            status = system(command);
+            remove(objectfile);
+            if (status != 0) goto cleanup;
 
-        sprintf(command, "%s -o %s.o %s", "as", objectfile, objectfile);
-        status = system(command);
-        remove(objectfile);
-        if (status != 0) goto cleanup;
-
-        strcat(objectfile, ".o");
-        append(&object_files, strdup(objectfile));
+            strcat(objectfile, ".o");
+            append(&object_files, strdup(objectfile));
+        }
     }
 
-    if (object_files.size == 0) {
-        fprintf(stderr, "no input file provided\n");
-        return 1;
+    if (assemble) {
+        status = 0;
+        goto cleanup;
     }
 
     sprintf(command,

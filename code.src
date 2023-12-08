@@ -1,6 +1,8 @@
+package main;
+
 use std.io;
 
 pub fun main() none {
-    printf ("Hello World");
+    printf ("Hello World\n");
     exit (EXIT_FAILURE);
 }

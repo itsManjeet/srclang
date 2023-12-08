@@ -137,7 +137,7 @@ bool is_alnum(char c) {
 }
 
 char *starts_with_reserved(char *p) {
-    static char *kw[] = {"pub", "fun", "return", "type", "use",
+    static char *kw[] = {"pub", "fun", "return", "type", "use", "package",
                          "i8", "i16", "i32", "i64", "bool", "none",
                          "struct", "enum", "static", "extern",
                          "let",

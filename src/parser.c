@@ -1,3 +1,6 @@
+#include <libgen.h>
+#include <unistd.h>
+
 #include "srclang.h"
 
 typedef struct VarScope VarScope;
@@ -24,6 +27,14 @@ typedef struct {
     TagScope *tag_scope;
 } Scope;
 
+typedef struct Package {
+    const char *path;
+    Function *functions;
+    VarList *variables;
+
+    struct Package *next;
+} Package;
+
 VarList *locals;
 VarList *globals;
 
@@ -32,6 +43,7 @@ TagScope *tag_scope;
 int scope_depth;
 
 Node *current_switch;
+Package* package;
 
 Scope *enter_scope() {
     Scope *sc = calloc(1, sizeof(Scope));
@@ -193,7 +205,10 @@ static char *read_file(char *path) {
 }
 
 static Program *use() {
-    char path[1024];
+    char path[2048], full_path[4096];
+    char *search_path[] = {"", "/usr/lib/srclang/", NULL};
+    Token *tok = token;
+
     char *id = expect_ident();
     strcpy(path, id);
     while (consume(".")) {
@@ -203,9 +218,27 @@ static Program *use() {
     expect(";");
     strcat(path, ".src");
 
+    bool found = false;
+    search_path[0] = dirname(strdup(filename));
+
+    for (int i = 0; search_path[i] != NULL; i++) {
+        sprintf(full_path, "%s/%s", search_path[i], path);
+        printf("search path: %s\n", full_path);
+        if (access(full_path, F_OK) == 0) {
+            found = true;
+            break;
+        }
+    }
+    free(search_path[0]);
+
+    if (!found) {
+        error_tok(tok, "missing required module '%s'", path);
+    }
+
     Token *tok_backup = token;
     char *user_input_backup = user_input;
     char *filename_backup = filename;
+    const char *package_name_backup = package_name;
 
     filename = path;
     user_input = read_file(path);
@@ -216,8 +249,9 @@ static Program *use() {
     free(user_input);
     user_input = user_input_backup;
     filename = filename_backup;
+    package_name = package_name_backup;
 
-    return program();
+    return prog;
 }
 
 Program *program() {
@@ -227,6 +261,10 @@ Program *program() {
     globals = NULL;
 
     bool pub = false;
+
+    expect("package");
+    package_name = expect_ident();
+    expect(";");
 
     while (!at_eof()) {
         pub = consume("pub") != NULL;
@@ -242,7 +280,6 @@ Program *program() {
         } else if (consume("type")) {
             type_define();
         } else if (consume("use")) {
-            VarList *backup = globals;
             Program *prog = use();
 
             for (Function *fun = prog->fns; fun; fun = fun->next) {
@@ -251,7 +288,6 @@ Program *program() {
                     cur = cur->next;
                 }
             }
-            globals = backup;
         } else {
             error("invalid global declaration");
         }
@@ -573,12 +609,23 @@ VarList *read_func_params() {
 Function *function(bool pub) {
     locals = NULL;
     Function *fun = NULL;
+    char buffer[1024];
+
     fun = calloc(1, sizeof(Function));
 
     Token *pos = token;
     fun->name = expect_ident();
     fun->pub = (strcmp(fun->name, "main") == 0) ? true : pub;
 
+    if (strcmp(package_name, "main") == 0 && strcmp(fun->name, "main") != 0) {
+        error("'main' is not expected in non executable package");
+    }
+    if (strcmp(fun->name, "main") == 0) {
+        fun->pub = true;
+    } else {
+        sprintf(buffer, "_%s_%s", package_name, fun->name);
+        fun->name = strdup(buffer);
+    }
     expect("(");
     fun->params = read_func_params();
 

@@ -1,0 +1,13 @@
+package list;
+
+use any;
+
+type List struct {
+    data: any*,
+    capacity: i64,
+    size: i64
+};
+
+pub fn new() {
+
+}
