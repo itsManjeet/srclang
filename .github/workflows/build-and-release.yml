@@ -7,16 +7,35 @@ env:
 
 jobs:
   build:
+    name: ${{ matrix.os }}-${{ github.workflow }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
-
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        include:
+          - os: windows-latest
+            vcpkgCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+          - os: ubuntu-latest
+            vcpkgCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+          - os: macos-latest
+            vcpkgCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - name: List $RUNNER_WORKSPACE before build
+        run: find $RUNNER_WORKSPACE
+        shell: bash
 
-      - uses: lukka/run-vcpkg@v11
-
-      - uses: lukka/run-cmake@v10
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
         with:
-          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
+          vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
+          vcpkgGitCommitId: '${{ matrix.vcpkgCommitId }}'
+          runVcpkgInstall: true
+
+      - name: Run CMake with Ninja
+        uses: lukka/run-cmake@v10
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          buildPreset: 'default'
