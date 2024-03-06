@@ -1,8 +1,7 @@
 {
   "dependencies": [
     {
-      "name": "libffi",
-      "version>=": "3.4.6"
+      "name": "libffi"
     }
   ],
   "name": "srclang",
