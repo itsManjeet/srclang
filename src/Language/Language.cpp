@@ -29,6 +29,13 @@ Language::Language() : globals(65536), options({{"VERSION", SRCLANG_VERSION},
     define("false", SRCLANG_VALUE_FALSE);
     define("null", SRCLANG_VALUE_NULL);
 
+#ifdef _WIN32
+    define("__PLATFORM__", SRCLANG_VALUE_SET_REF(SRCLANG_VALUE_STRING("WINDOWS")));
+#else
+    define("__PLATFORM__", SRCLANG_VALUE_SET_REF(SRCLANG_VALUE_STRING("LINUX")));
+#endif
+
+    define_constants(this);
 }
 
 Language::~Language() = default;

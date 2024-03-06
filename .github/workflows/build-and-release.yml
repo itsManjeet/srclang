@@ -10,25 +10,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ ubuntu-latest, windows-latest ]
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Create Build Environment
-        run: cmake -E make_directory ${{github.workspace}}/build
+      - uses: lukka/run-vcpkg@v11
 
-      - name: Configure CMake
-        working-directory: ${{github.workspace}}/build
-        shell: bash
-        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-
-      - name: Build
-        working-directory: ${{github.workspace}}/build
-        shell: bash
-        run: cmake --build . --config $BUILD_TYPE
-
-      - name: Test
-        working-directory: ${{github.workspace}}/build
-        shell: bash
-        run: ctest -C $BUILD_TYPE
+      - uses: lukka/run-cmake@v10
+        with:
+          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'

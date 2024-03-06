@@ -3,6 +3,16 @@
 #include "../Interpreter/Interpreter.h"
 #include "../Language/Language.h"
 
+#include <ffi.h>
+
+#ifdef _WIN32
+
+#include <windows.h>
+
+#else
+#include <dlfcn.h>
+#endif
+
 using namespace srclang;
 
 
@@ -336,4 +346,139 @@ SRCLANG_BUILTIN(open) {
                     }))});
 
     return value;
+}
+
+SRCLANG_BUILTIN(ffi) {
+#ifndef FFI_SUPPORT
+    return SRCLANG_VALUE_SET_REF(SRCLANG_VALUE_ERROR("FFI NOT SUPPORTED"));
+#else
+    SRCLANG_CHECK_ARGS_EXACT(3);
+    SRCLANG_CHECK_ARGS_TYPE(0, ValueType::Pointer);
+    auto fun = SRCLANG_VALUE_AS_OBJECT(args[0])->pointer;
+
+    SRCLANG_CHECK_ARGS_TYPE(1, ValueType::Pointer);
+    auto returnType = reinterpret_cast<ffi_type *>(SRCLANG_VALUE_AS_OBJECT(args[1])->pointer);
+
+    SRCLANG_CHECK_ARGS_TYPE(2, ValueType::List);
+    auto parameters_list = reinterpret_cast<SrcLangList *>(SRCLANG_VALUE_AS_OBJECT(args[2])->pointer);
+
+    auto parameters = new ffi_type *[parameters_list->size()];
+    for (int i = 0; i < parameters_list->size(); i++) {
+        parameters[i] = reinterpret_cast<ffi_type *>(SRCLANG_VALUE_AS_OBJECT(parameters_list->at(i))->pointer);
+    }
+    ffi_cif *cif = new ffi_cif();
+    auto status = ffi_prep_cif(cif, FFI_DEFAULT_ABI, parameters_list->size(), returnType, parameters);
+    if (status != FFI_OK) {
+        return SRCLANG_VALUE_SET_REF(SRCLANG_VALUE_ERROR("failed to prepare cif"));
+    }
+
+    auto object = new SrcLangMap();
+    auto value = SRCLANG_VALUE_MAP(object);
+
+    object->insert({"__ptr__", SRCLANG_VALUE_SET_CLEANUP(
+            SRCLANG_VALUE_POINTER(reinterpret_cast<void *>(cif)),
+            +[](void *ptr) {
+                delete reinterpret_cast<ffi_cif *>(ptr);
+            })});
+    object->insert({"__types__", SRCLANG_VALUE_SET_CLEANUP(
+            SRCLANG_VALUE_POINTER(reinterpret_cast<void *>(parameters)),
+            +[](void *ptr) {
+                delete[] reinterpret_cast<ffi_type **>(ptr);
+            })});
+
+    object->insert({"__fun__", SRCLANG_VALUE_SET_REF(SRCLANG_VALUE_POINTER(fun))});
+
+    object->insert({"__call__",
+                    SRCLANG_VALUE_BOUND(
+                            value,
+                            SRCLANG_VALUE_BUILTIN_NEW(+[](std::vector<Value> &args) -> Value {
+                                SRCLANG_CHECK_ARGS_ATLEAST(1);
+                                SRCLANG_CHECK_ARGS_TYPE(0, ValueType::Map);
+                                auto self = reinterpret_cast<SrcLangMap *>(SRCLANG_VALUE_AS_OBJECT(args[0])->pointer);
+                                auto cif = reinterpret_cast<ffi_cif *>(SRCLANG_VALUE_AS_OBJECT(
+                                        self->at("__ptr__"))->pointer);
+                                auto fun = SRCLANG_VALUE_AS_OBJECT(
+                                        self->at("__fun__"))->pointer;
+
+                                auto values = new void *[args.size() - 2];
+                                for (int i = 2; i < args.size(); i++) {
+                                    values[i - 2] = &SRCLANG_VALUE_AS_OBJECT(args[i])->pointer;
+                                }
+
+                                ffi_arg result;
+                                ffi_call(cif, FFI_FN(fun), &result, values);
+                                delete[]values;
+
+                                return SRCLANG_VALUE_NUMBER(result);
+                            }))});
+
+    return value;
+#endif
+}
+
+SRCLANG_BUILTIN(loadLibrary) {
+    SRCLANG_CHECK_ARGS_EXACT(1);
+    SRCLANG_CHECK_ARGS_TYPE(0, ValueType::String);
+    auto library_id = reinterpret_cast<const char *>(SRCLANG_VALUE_AS_OBJECT(args[0])->pointer);
+
+#ifdef _WIN32
+    HMODULE handler = LoadLibrary(library_id);
+    auto handler_value = SRCLANG_VALUE_SET_CLEANUP(SRCLANG_VALUE_POINTER(handler), [](void *ptr) {
+        FreeLibrary(reinterpret_cast<HMODULE>(ptr));
+    });
+#else
+    void* handler = dlopen(library_id, RTLD_LAZY | RTLD_LOCAL);
+    auto value = SRCLANG_VALUE_SET_CLEANUP(SRCLANG_VALUE_POINTER(handler), [](void *ptr) {
+        dlclosre(ptr);
+    });
+#endif
+
+    auto object = new SrcLangMap();
+    auto value = SRCLANG_VALUE_MAP(object);
+
+    object->insert({"__ptr__", SRCLANG_VALUE_SET_CLEANUP(SRCLANG_VALUE_POINTER(handler), [](void *ptr) {
+        FreeLibrary(reinterpret_cast<HMODULE>(ptr));
+    })});
+
+    object->insert({"getFun",
+                    SRCLANG_VALUE_BOUND(
+                            value,
+                            SRCLANG_VALUE_BUILTIN_NEW(+[](std::vector<Value> &args) -> Value {
+                                SRCLANG_CHECK_ARGS_ATLEAST(2);
+                                SRCLANG_CHECK_ARGS_TYPE(0, ValueType::Map);
+                                SRCLANG_CHECK_ARGS_TYPE(1, ValueType::String);
+                                auto self = reinterpret_cast<SrcLangMap *>(SRCLANG_VALUE_AS_OBJECT(args[0])->pointer);
+                                auto handler = SRCLANG_VALUE_AS_OBJECT(
+                                        self->at("__ptr__"))->pointer;
+                                auto fun = reinterpret_cast<const char *>(SRCLANG_VALUE_AS_OBJECT(
+                                        args[1])->pointer);
+
+                                return SRCLANG_VALUE_SET_REF(
+                                        SRCLANG_VALUE_POINTER(GetProcAddress(reinterpret_cast<HMODULE>(handler), fun)));
+
+                            }))});
+
+    return value;
+}
+
+void srclang::define_constants(Language *language) {
+#ifdef FFI_SUPPORT
+#define FFI_TYPE_LIST \
+    X(sint8)          \
+    X(sint16)         \
+    X(sint32)         \
+    X(sint64)         \
+    X(uint8)          \
+    X(uint16)         \
+    X(uint32)         \
+    X(uint64)         \
+    X(void)           \
+    X(pointer)        \
+    X(float)          \
+    X(double)
+
+#define X(id) language->define("ctype_"#id, SRCLANG_VALUE_SET_REF(SRCLANG_VALUE_POINTER(&ffi_type_##id)));
+    FFI_TYPE_LIST
+#undef X
+#endif
 }

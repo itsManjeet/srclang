@@ -128,7 +128,7 @@ namespace srclang {
 #define SRCLANG_VALUE_BOUND(p, c) \
     SRCLANG_VALUE_BOUNDED((new BoundedValue{(p), (c)}))
 
-#define SRCLANG_VALUE_POINTER(ptr) SRCLANG_VALUE_HEAP_OBJECT(ValueType::Pointer, ptr)
+#define SRCLANG_VALUE_POINTER(ptr) SRCLANG_VALUE_HEAP_OBJECT(ValueType::Pointer, (void*)(ptr))
 
 #define SRCLANG_VALUE_SET_REF(val) srclang_value_set_ref(val)
 #define SRCLANG_VALUE_SET_SIZE(val, sz) srclang_value_set_size(val, sz)

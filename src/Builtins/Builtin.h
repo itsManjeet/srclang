@@ -28,7 +28,9 @@ namespace srclang {
     X(free)                               \
     X(bound)                              \
     X(exit)                               \
-    X(open)
+    X(open)                               \
+    X(ffi)                                \
+    X(loadLibrary)
 
     struct Interpreter;
 #define X(id) SRCLANG_BUILTIN(id);
@@ -43,6 +45,8 @@ namespace srclang {
 #undef X
     };
     extern std::vector<Value> builtins;
+
+    void define_constants(Language *language);
 }  // namespace srclang
 
 #endif  // SRCLANG_BUILTIN_H

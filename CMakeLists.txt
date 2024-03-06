@@ -7,8 +7,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(POSITION_INDEPENDENT_CODE ON)
 
+add_definitions(-DFFI_SUPPORT)
+find_package(PkgConfig)
+pkg_check_modules(LIBFFI REQUIRED IMPORTED_TARGET libffi)
+
 add_subdirectory(src)
-add_subdirectory(bin)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     enable_testing()
