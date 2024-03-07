@@ -39,3 +39,4 @@ jobs:
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           configurePreset: 'default'
+          buildPreset: 'default'

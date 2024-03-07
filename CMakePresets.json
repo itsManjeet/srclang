@@ -4,9 +4,18 @@
     {
       "name": "default",
       "binaryDir": "${sourceDir}/build",
+      "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "displayName": "Build",
+      "description": "Build"
     }
   ]
 }
