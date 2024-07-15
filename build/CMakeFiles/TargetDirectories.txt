@@ -1,0 +1,3 @@
+/home/itsmanjeet/srclang/build/CMakeFiles/capsule.dir
+/home/itsmanjeet/srclang/build/CMakeFiles/edit_cache.dir
+/home/itsmanjeet/srclang/build/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,1 @@
+/usr/bin/gcc -g CMakeFiles/capsule.dir/src/builtin.c.o CMakeFiles/capsule.dir/src/capsule.c.o CMakeFiles/capsule.dir/src/eval.c.o CMakeFiles/capsule.dir/src/error.c.o CMakeFiles/capsule.dir/src/scope.c.o CMakeFiles/capsule.dir/src/utils.c.o CMakeFiles/capsule.dir/src/main.c.o CMakeFiles/capsule.dir/src/read.c.o -o capsule  /usr/lib/x86_64-linux-gnu/libreadline.so 

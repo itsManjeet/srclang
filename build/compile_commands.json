@@ -1,0 +1,42 @@
+[
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/builtin.c.o -c /home/itsmanjeet/srclang/src/builtin.c",
+  "file": "/home/itsmanjeet/srclang/src/builtin.c"
+},
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/capsule.c.o -c /home/itsmanjeet/srclang/src/capsule.c",
+  "file": "/home/itsmanjeet/srclang/src/capsule.c"
+},
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/eval.c.o -c /home/itsmanjeet/srclang/src/eval.c",
+  "file": "/home/itsmanjeet/srclang/src/eval.c"
+},
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/error.c.o -c /home/itsmanjeet/srclang/src/error.c",
+  "file": "/home/itsmanjeet/srclang/src/error.c"
+},
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/scope.c.o -c /home/itsmanjeet/srclang/src/scope.c",
+  "file": "/home/itsmanjeet/srclang/src/scope.c"
+},
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/utils.c.o -c /home/itsmanjeet/srclang/src/utils.c",
+  "file": "/home/itsmanjeet/srclang/src/utils.c"
+},
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/main.c.o -c /home/itsmanjeet/srclang/src/main.c",
+  "file": "/home/itsmanjeet/srclang/src/main.c"
+},
+{
+  "directory": "/home/itsmanjeet/srclang/build",
+  "command": "/usr/bin/gcc -DHAS_READLINE -I/home/itsmanjeet/srclang/include -I/home/itsmanjeet/srclang/build/generated -g -o CMakeFiles/capsule.dir/src/read.c.o -c /home/itsmanjeet/srclang/src/read.c",
+  "file": "/home/itsmanjeet/srclang/src/read.c"
+}
+]

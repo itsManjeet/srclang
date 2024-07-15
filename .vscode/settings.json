@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "capsule.h": "c",
+        "readline.h": "c",
+        "stddef.h": "c",
+        "_priv.h": "c"
+    }
+}
